@@ -77,8 +77,8 @@ module RouteTranslator
 
         conditions[:request_method] = request_method_array(conditions[:request_method]) if conditions[:request_method]
 
-        requirements = route.requirements.dup.merge!(LOCALE_PARAM_KEY => locale)
-        defaults = route.defaults.dup.merge LOCALE_PARAM_KEY => locale
+        requirements = route.requirements.dup# corin .merge!(LOCALE_PARAM_KEY => locale)
+        defaults = route.defaults.dup# corin .merge LOCALE_PARAM_KEY => locale
 
         new_name = "#{route.name}_#{locale_suffix(locale)}" if route.name
 
@@ -105,7 +105,7 @@ module RouteTranslator
       def translate_path(path, locale)
         final_optional_segments = path.slice!(/(\(.+\))$/)
         new_path = path.split("/").map{|seg| translate_path_segment(seg, locale)}.join('/')
-        new_path = "/#{locale.downcase}#{new_path}" unless default_locale?(locale)
+        # corin new_path = "/#{locale.downcase}#{new_path}" unless default_locale?(locale)
         new_path = "/" if new_path.blank?
         "#{new_path}#{final_optional_segments}"
       end
