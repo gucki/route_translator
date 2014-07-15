@@ -40,8 +40,8 @@ module RouteTranslator
         if new_conditions[:required_defaults] && !new_conditions[:required_defaults].include?(RouteTranslator.locale_param_key)
           new_conditions[:required_defaults] << RouteTranslator.locale_param_key if new_conditions[:required_defaults]
         end
-        new_defaults = defaults.merge(RouteTranslator.locale_param_key => locale.to_s.gsub('native_', ''))
-        new_requirements = requirements.merge(RouteTranslator.locale_param_key => locale.to_s)
+        new_defaults = defaults.dup
+        new_requirements = requirements.dup
         new_route_name = translate_name(route_name, locale)
         new_route_name = nil if new_route_name && route_set.named_routes.routes[new_route_name.to_sym] #TODO: Investigate this :(
         block.call(app, new_conditions, new_requirements, new_defaults, new_route_name, anchor)
@@ -67,18 +67,23 @@ module RouteTranslator
     def self.translate_path(path, locale)
       new_path = path.dup
       final_optional_segments = new_path.slice!(/(\([^\/]+\))$/)
-      translated_segments = new_path.split(/\/|\./).map{ |seg| translate_path_segment(seg, locale) }.select{ |seg| !seg.blank? }
+      translated_path = translate_string(new_path, locale)
+      if translated_path.blank?
+        translated_segments = new_path.split(/\/|\./).map{ |seg| translate_path_segment(seg, locale) }.select{ |seg| !seg.blank? }
 
-      if display_locale?(locale) && !locale_param_present?(new_path)
-        translated_segments.unshift(locale.to_s.downcase)
+        if display_locale?(locale) && !locale_param_present?(new_path)
+          translated_segments.unshift(locale.to_s.downcase)
+        end
+
+        joined_segments = translated_segments.inject do |memo, segment|
+          separator = segment == ':format' ? '.' : '/'
+          memo << separator << segment
+        end
+
+        translated_path = "/#{joined_segments}"
       end
 
-      joined_segments = translated_segments.inject do |memo, segment|
-        separator = segment == ':format' ? '.' : '/'
-        memo << separator << segment
-      end
-
-      "/#{joined_segments}#{final_optional_segments}".gsub(/\/\(\//, '(/')
+      "#{translated_path}#{final_optional_segments}".gsub(/\/\(\//, '(/')
     end
 
     def self.display_locale?(locale)
